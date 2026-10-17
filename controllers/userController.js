@@ -1,7 +1,7 @@
 function register(req, res) {
     const email = req.body.email;
     const name = req.body.name;
-    const password = req.body.name;
+    const password = req.body.password;
 
     const user = 
     {
@@ -25,11 +25,11 @@ function logon(req, res) {
     for (let user of global.users) {
         if (user.email == email && user.password == password) {
             global.user_id = user;
-            
             res.status(200).json({
                 name: user.name,
                 email: user.email,
             })
+            return;
         }
     }
     res.status(401);
