@@ -1,15 +1,26 @@
 const express = require("express");
 const dogsRouter = require("./routes/dogs");
+const { randomUUID } = require("crypto");
 
 const app = express();
 
 // Assignment 3b and 3c ask you to add middleware in this file.
+app.use((req, res, next) => { // Request ID
+  req.requestId = randomUUID();
+  res.setHeader("X-Request-Id", req.requestId);
+  next();
+});
 
+app.use((req, res, next) => { // Logger
+  console.log(`[${new Date().toISOString()}]: ${req.method} ${req.path} ${req.requestId}`);
+  next();
+});
 
+app.use(express.json());
+app.use(express.static(__dirname + '/public'))
 
 
 app.use("/", dogsRouter);// Do not remove this line
-
 
 if (require.main === module) {
   app.listen(3000, () => {
