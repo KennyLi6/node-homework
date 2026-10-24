@@ -12,7 +12,7 @@ global.tasks = [];
 
 app.use(express.json());
 
-app.use("/api", userRouter);
+app.use("/api/users", userRouter);
 
 app.use("/api", notFound)
 app.use("/api", errorHandler)

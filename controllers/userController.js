@@ -32,12 +32,16 @@ function logon(req, res) {
             return;
         }
     }
-    res.status(401);
+    res.status(401).json({
+        message: "Couldn't log on"
+    });
 }
 
 function logoff(req, res) {
     global.user_id = null;
-    res.status(200);
+    res.status(200).json({
+        message: "Log off sucess"
+    });
 }
 
 module.exports = {
