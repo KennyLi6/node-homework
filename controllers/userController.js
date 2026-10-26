@@ -1,5 +1,22 @@
 const { userSchema } = require("../validation/userSchema");
 
+const crypto = require("crypto");
+const util = require("util");
+const scrypt = util.promisify(crypto.scrypt);
+
+const hashPassword = async (password) => {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const derivedKey = await scrypt(password, salt, 64)
+    return `${salt}:${derivedKey.toString("hex")}`;
+}
+
+const comparePassword = async (inputPassword, storedHash) => {
+    const [salt, key] = storedHash.split(":");
+    const keyBuffer = Buffer.from(key, "hex");
+    const derivedKey = await scrypt(inputPassword, salt, 64);
+    return crypto.timingSafeEqual(keyBuffer, derivedKey);
+}
+
 exports.register = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = userSchema.validate(req.body, { abortEarly: false });
@@ -7,13 +24,13 @@ exports.register = async (req, res) => {
 
     const email = value.email;
     const name = value.name;
-    const password = value.password;
+    const hashedPassword = await hashPassword(value.password);
 
     const user = 
     {
         email: email,
         name: name,
-        password: password,
+        password: hashedPassword,
     }
 
     global.users.push(user);
@@ -25,11 +42,12 @@ exports.register = async (req, res) => {
     });
 }
 
-function logon(req, res) {
+const logon = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     for (let user of global.users) {
-        if (user.email == email && user.password == password) {
+        const goodCredentials = await comparePassword(password,user.hashedPassword);
+        if (goodCredentials) {
             global.user_id = user;
             res.status(200).json({
                 name: user.name,
