@@ -19,14 +19,18 @@ exports.index = async (req, res) => {
         const {userId, ...sanitizedTask} = task;
         return sanitizedTask
     });
-    res.status(200).json({ tasks: sanitizedTasks });
+    res.status(200).json({ sanitizedTasks });
 }
 
 function show(req, res) {
-    if (!req.body) req.body = {};
-    const { error, value } = taskSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: "Invalid format" });
-
+    const taskId = parseInt(req.params?.id);
+    if (!taskId) return res.status(400).json({ message: "Invalid Id" });
+    const task = global.tasks.filter(
+        (task) => task.userId === global.user_id.email && task.id === taskId,
+    );
+    if (!task) return res.status(404).json({ message: "Task not found" });
+    const { userId, ...sanitizedTask } = task;
+    res.status(200).json({ sanitizedTask });
 }
 
 exports.create = async (req, res) => {
@@ -36,7 +40,7 @@ exports.create = async (req, res) => {
     const newTask = { id: taskCounter(), userId: global.user_id.email, ...value };
     global.tasks.push(newTask)
     const { userId, ...sanitizedTask } = newTask;
-    res.status(201).json({ task: sanitizedTask })
+    res.status(201).json({ sanitizedTask })
 }
 
 function update(req, res) {
