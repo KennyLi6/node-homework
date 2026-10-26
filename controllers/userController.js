@@ -47,7 +47,7 @@ const logon = async (req, res) => {
     const password = req.body.password;
     for (let user of global.users) {
         const goodCredentials = await comparePassword(password,user.hashedPassword);
-        if (goodCredentials) {
+        if (goodCredentials && email == user.email) {
             global.user_id = user;
             res.status(200).json({
                 name: user.name,
