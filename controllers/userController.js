@@ -1,7 +1,13 @@
-function register(req, res) {
-    const email = req.body.email;
-    const name = req.body.name;
-    const password = req.body.password;
+const { userSchema } = require("../validation/userSchema");
+
+exports.register = async (req, res) => {
+    if (!req.body) req.body = {};
+    const { error, value } = userSchema.validate(req.body, { abortEarly: false });
+    if (error) return res.status(400).json({ message: "Invalid format" });
+
+    const email = value.email;
+    const name = value.name;
+    const password = value.password;
 
     const user = 
     {
@@ -45,7 +51,6 @@ function logoff(req, res) {
 }
 
 module.exports = {
-    register,
     logon,
     logoff,
 }
