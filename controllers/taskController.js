@@ -9,14 +9,24 @@ const taskCounter = (() => {
 })();
 
 exports.index = async (req, res) => {
-    if (!req.body) req.body = {};
-    const { error, value } = taskSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: "Invalid format" });
-    
+    const userTasks = global.tasks.filter(
+        (task) => task.userId === global.user_id.email,
+    );
+    if (userTasks.length == 0) {
+        return res.status(404).json({ message: "No tasks found" });
+    }
+    const sanitizedTasks = userTasks.map(task => { 
+        const {userId, ...sanitizedTask} = task;
+        return sanitizedTask
+    });
+    res.status(200).json({ tasks: sanitizedTasks });
 }
 
 function show(req, res) {
-    
+    if (!req.body) req.body = {};
+    const { error, value } = taskSchema.validate(req.body);
+    if (error) return res.status(400).json({ message: "Invalid format" });
+
 }
 
 exports.create = async (req, res) => {
@@ -35,11 +45,4 @@ function update(req, res) {
 
 function deleteTask(req, res) {
     
-}
-
-module.exports = {
-    index,
-    show,
-    update,
-    deleteTask
 }
