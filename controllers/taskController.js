@@ -19,53 +19,52 @@ exports.index = async (req, res) => {
         const {userId, ...sanitizedTask} = task;
         return sanitizedTask
     });
-    res.status(200).json({ sanitizedTasks });
+    res.status(200).json(sanitizedTasks);
 }
 
 exports.show = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const task = global.tasks.filter(
+    const task = global.tasks.find(
         (task) => task.userId === global.user_id.email && task.id === taskId,
     );
     if (!task) return res.status(404).json({ message: "Task not found" });
     const { userId, ...sanitizedTask } = task;
-    res.status(200).json({ sanitizedTask });
+    res.status(200).json(sanitizedTask);
 }
 
 exports.create = async (req, res) => {
     if (!req.body) req.body = {};
-    const { error, value } = taskSchema.validate(req.body);
+    const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
     const newTask = { id: taskCounter(), userId: global.user_id.email, ...value };
     global.tasks.push(newTask)
     const { userId, ...sanitizedTask } = newTask;
-    res.status(201).json({ sanitizedTask })
+    res.status(201).json(sanitizedTask)
 }
 
 exports.update = async (req, res) => {
     if (!req.body) req.body = {};
-    const { error, value } = patchTaskSchema.validate(req.body);
+    const { error, value } = patchTaskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
     const taskId = parseInt(req.params?.id);
-    const task = global.tasks.filter(
+    const task = global.tasks.find(
         (task) => task.userId === global.user_id.email && task.id === taskId,
     );
     if (!task) return res.status(404).json({ message: "Task not found" });
     Object.assign(task, value);
     const { userId, ...sanitizedTask } = task;
-    res.status(200).json({ sanitizedTask });
+    res.status(200).json(sanitizedTask);
 }
 
 exports.deleteTask = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const task = global.tasks.filter(
-        (task) => task.userId === global.user_id.email && task.id === taskId,
+    const index = global.tasks.findIndex(
+        (t) => t.userId === global.user_id.email && t.id === taskId
     );
-    if (!task) return res.status(404).json({ message: "Task nto found" });
-    const index = global.tasks.findIndex(task);
-    global.tasks.splice(index, 1);
+    if (index === -1) return res.status(404).json({ message: "Task not found" });
+    const [task] = global.tasks.splice(index, 1);
     const { userId, ...sanitizedTask } = task;
-    res.status(200).json({ sanitizedTask });
+    res.status(200).json(sanitizedTask);
 }

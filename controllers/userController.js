@@ -4,20 +4,20 @@ const crypto = require("crypto");
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
 
-const hashPassword = async (password) => {
-    const salt = crypto.randomBytes(16).toString("hex");
-    const derivedKey = await scrypt(password, salt, 64)
-    return `${salt}:${derivedKey.toString("hex")}`;
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = await scrypt(password, salt, 64);
+  return `${salt}:${derivedKey.toString("hex")}`;
 }
 
-const comparePassword = async (inputPassword, storedHash) => {
-    const [salt, key] = storedHash.split(":");
-    const keyBuffer = Buffer.from(key, "hex");
-    const derivedKey = await scrypt(inputPassword, salt, 64);
-    return crypto.timingSafeEqual(keyBuffer, derivedKey);
+async function comparePassword(inputPassword, storedHash) {
+  const [salt, key] = storedHash.split(":");
+  const keyBuffer = Buffer.from(key, "hex");
+  const derivedKey = await scrypt(inputPassword, salt, 64);
+  return crypto.timingSafeEqual(keyBuffer, derivedKey);
 }
 
-exports.register = async (req, res) => {
+const register = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = userSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
@@ -30,7 +30,7 @@ exports.register = async (req, res) => {
     {
         email: email,
         name: name,
-        password: hashedPassword,
+        hashedPassword: hashedPassword,
     }
 
     global.users.push(user);
@@ -46,7 +46,8 @@ const logon = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
     for (let user of global.users) {
-        const goodCredentials = await comparePassword(password,user.hashedPassword);
+
+        const goodCredentials = await comparePassword(password, user.hashedPassword);
         if (goodCredentials && email == user.email) {
             global.user_id = user;
             res.status(200).json({
@@ -69,6 +70,7 @@ function logoff(req, res) {
 }
 
 module.exports = {
+    register,
     logon,
     logoff,
 }
