@@ -9,7 +9,7 @@ const taskCounter = (() => {
     };
 })();
 
-exports.index = async (req, res) => {
+const index = async (req, res) => {
     const result = await pool.query("SELECT id, title, is_completed FROM tasks WHERE user_id = $1",
         [global.user_id]);
     const tasks = result.rows;
@@ -19,7 +19,7 @@ exports.index = async (req, res) => {
     res.status(200).json(tasks);
 }
 
-exports.show = async (req, res) => {
+const show = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
     const result = await pool.query(`SELECT FROM tasks
@@ -30,7 +30,7 @@ exports.show = async (req, res) => {
     res.status(200).json(task);
 }
 
-exports.create = async (req, res) => {
+const create = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
@@ -43,7 +43,7 @@ exports.create = async (req, res) => {
     res.status(201).json(task);
 }
 
-exports.update = async (req, res) => {
+const update = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = patchTaskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
@@ -65,7 +65,7 @@ exports.update = async (req, res) => {
     res.status(200).json(updatedTask);
 }
 
-exports.deleteTask = async (req, res) => {
+const deleteTask = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
     const result = await pool.query(`DELETE FROM tasks 
@@ -74,4 +74,12 @@ exports.deleteTask = async (req, res) => {
     if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
     const task = result.rows[0];
     res.status(200).json(task);
+}
+
+module.exports = {
+    index,
+    show,
+    create,
+    update,
+    deleteTask
 }
