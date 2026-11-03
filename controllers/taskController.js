@@ -47,24 +47,31 @@ exports.update = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = patchTaskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
-    const taskId = parseInt(req.params?.id);
-    const task = global.tasks.find(
-        (task) => task.userId === global.user_id.email && task.id === taskId,
-    );
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    Object.assign(task, value);
-    const { userId, ...sanitizedTask } = task;
-    res.status(200).json(sanitizedTask);
+    const taskChange = value;
+    let keys = Object.keys(taskChange);
+    keys = keys.map((key) => key === "isCompleted" ? "is_completed" : key);
+    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(", ");
+    const idParm = `$${keys.length + 1}`;
+    const userParm = `$${keys.length + 2}`;
+    const result = await pool.query(`UPDATE tasks SET ${setClauses}
+        WHERE id = ${idParm} AND user_id = ${userParm} RETURNING id, title, is_completed`, 
+        [...Object.values(taskChange), req.params.id, global.user_id]);
+    const updatedTask = result.rows[0];
+    if (!updatedTask) { 
+        return res.status(400).json({ 
+            message: "Couldn't update task" 
+        });
+    }
+    res.status(200).json(updatedTask);
 }
 
 exports.deleteTask = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const index = global.tasks.findIndex(
-        (t) => t.userId === global.user_id.email && t.id === taskId
-    );
-    if (index === -1) return res.status(404).json({ message: "Task not found" });
-    const [task] = global.tasks.splice(index, 1);
-    const { userId, ...sanitizedTask } = task;
-    res.status(200).json(sanitizedTask);
+    const result = await pool.query(`DELETE FROM task 
+        WHERE id = $1 AND user_id = $2 RETURNING id, title, isCompleted`,
+        [taskId, global.user_id]);
+    if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
+    const [task] = result.rows[0];
+    res.status(200).json(task);
 }
