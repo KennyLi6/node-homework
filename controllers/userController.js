@@ -18,28 +18,40 @@ async function comparePassword(inputPassword, storedHash) {
   return crypto.timingSafeEqual(keyBuffer, derivedKey);
 }
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
     if (!req.body) req.body = {};
     const { error, value } = userSchema.validate(req.body, { abortEarly: false });
-    if (error) return res.status(400).json({ message: "Invalid format" });
-
-    const email = value.email;
-    const name = value.name;
-    const hashedPassword = await hashPassword(value.password);
-
-    const user = 
-    {
-        email: email,
-        name: name,
-        hashedPassword: hashedPassword,
+    if (error) {
+        return res.status(400).json({
+            message: "Validation failed",
+            details: error.details,
+        });
     }
+    let result = null;
+    value.hashed_password = await hashPassword(value.password);
+    // the code to here is like the in-memory version
+    try {
+        result = await pool.query(`INSERT INTO users (email, name, hashed_password)
+            VALUES ($1, $2, $3) RETURNING id, email, name`,
+            [value.email, value.name, value.hashed_password]
+        ); // note that you use a parameterized query
+    } catch (e) { // the email might already be registered
+        if (e.code === "23505") { // this means the unique constraint for email was violated
+            // here you return the 400 and the error message.  Use a return statement, so that 
+            // you don't keep going in this function
+            return res.status(400).json({
+                message: "Email in use"
+            })
+        }
+        return next(e); // all other errors get passed to the error handler
+    }
+    const user = result.rows[0];
 
-    global.users.push(user);
-    global.user_id = user;
+    global.user_id = user.id;
 
     res.status(201).json({
-        name: name,
-        email: email,
+        name: user.name,
+        email: user.email,
     });
 }
 
