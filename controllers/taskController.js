@@ -10,17 +10,13 @@ const taskCounter = (() => {
 })();
 
 exports.index = async (req, res) => {
-    const userTasks = global.tasks.filter(
-        (task) => task.userId === global.user_id.email,
-    );
-    if (userTasks.length == 0) {
+    const result = await pool.query("SELECT id, title, is_completed FROM tasks WHERE user_id = $1",
+        [global.user_id]);
+    const tasks = result.rows;
+    if (tasks.length == 0) {
         return res.status(404).json({ message: "No tasks found" });
     }
-    const sanitizedTasks = userTasks.map(task => { 
-        const {userId, ...sanitizedTask} = task;
-        return sanitizedTask
-    });
-    res.status(200).json(sanitizedTasks);
+    res.status(200).json(tasks);
 }
 
 exports.show = async (req, res) => {
