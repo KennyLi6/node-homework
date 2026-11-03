@@ -1,4 +1,5 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
+const { pool } = require("../db/pg-pool");
 
 const taskCounter = (() => {
     let lastTaskNumber = 0;
@@ -37,10 +38,13 @@ exports.create = async (req, res) => {
     if (!req.body) req.body = {};
     const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
-    const newTask = { id: taskCounter(), userId: global.user_id.email, ...value };
-    global.tasks.push(newTask)
-    const { userId, ...sanitizedTask } = newTask;
-    res.status(201).json(sanitizedTask)
+    // you do your Joi validation, and you have a validated task object. Then:
+    const result = await pool.query(`INSERT INTO tasks (title, is_completed, user_id)
+        VALUES ( $1, $2, $3 ) RETURNING id, title, is_completed`,
+        [value.title, value.isCompleted, global.user_id]);
+    const task = result.rows[0];
+    // You don't need a try/catch because the global error handler will handle the errors
+    res.status(201).json(task);
 }
 
 exports.update = async (req, res) => {
