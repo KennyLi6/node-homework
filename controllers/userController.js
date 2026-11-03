@@ -1,4 +1,5 @@
 const { userSchema } = require("../validation/userSchema");
+const { Pool } = require("../db/pg-pool")
 
 const crypto = require("crypto");
 const util = require("util");
@@ -45,17 +46,21 @@ const register = async (req, res) => {
 const logon = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
-    for (let user of global.users) {
-
-        const goodCredentials = await comparePassword(password, user.hashedPassword);
-        if (goodCredentials && email == user.email) {
-            global.user_id = user;
-            res.status(200).json({
-                name: user.name,
-                email: user.email,
-            })
-            return;
-        }
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    if (result.rows.length == 0) {
+        res.status(401).json({
+            message: "Couldn't log on"
+        });
+    }
+    const user = result.rows[0]
+    const goodCredentials = await comparePassword(password, user.hashedPassword);
+    if (goodCredentials && email == user.email) {
+        global.user_id = user.id;
+        res.status(200).json({
+            name: user.name,
+            email: user.email,
+        })
+        return;
     }
     res.status(401).json({
         message: "Couldn't log on"
