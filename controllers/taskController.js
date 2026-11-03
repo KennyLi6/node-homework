@@ -1,5 +1,5 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
-const { pool } = require("../db/pg-pool");
+const pool = require("../db/pg-pool");
 
 const taskCounter = (() => {
     let lastTaskNumber = 0;
@@ -22,10 +22,10 @@ exports.index = async (req, res) => {
 exports.show = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const result = pool.query(`SELECT FROM tasks
-        WHERE id = $1 AND user_id = $2 RETURNING id, title, is_completed`,
+    const result = await pool.query(`SELECT FROM tasks
+        WHERE id = $1 AND user_id = $2`,
         [taskId, global.user_id]);
-    if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
+    if (!result.rows) return res.status(404).json({ message: "Task not found" });
     const task = result.rows[0];
     res.status(200).json(task);
 }
@@ -58,7 +58,7 @@ exports.update = async (req, res) => {
         [...Object.values(taskChange), req.params.id, global.user_id]);
     const updatedTask = result.rows[0];
     if (!updatedTask) { 
-        return res.status(400).json({ 
+        return res.status(404).json({ 
             message: "Couldn't update task" 
         });
     }
@@ -69,9 +69,9 @@ exports.deleteTask = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
     const result = await pool.query(`DELETE FROM tasks 
-        WHERE id = $1 AND user_id = $2 RETURNING id, title, isCompleted`,
+        WHERE id = $1 AND user_id = $2 RETURNING id, title, is_completed`,
         [taskId, global.user_id]);
     if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
-    const [task] = result.rows[0];
+    const task = result.rows[0];
     res.status(200).json(task);
 }
