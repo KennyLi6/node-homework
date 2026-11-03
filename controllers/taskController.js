@@ -22,12 +22,12 @@ exports.index = async (req, res) => {
 exports.show = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const task = global.tasks.find(
-        (task) => task.userId === global.user_id.email && task.id === taskId,
-    );
-    if (!task) return res.status(404).json({ message: "Task not found" });
-    const { userId, ...sanitizedTask } = task;
-    res.status(200).json(sanitizedTask);
+    const result = pool.query(`SELECT FROM tasks
+        WHERE id = $1 AND user_id = $2 RETURNING id, title, is_completed`,
+        [taskId, global.user_id]);
+    if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
+    const task = result.rows[0];
+    res.status(200).json(task);
 }
 
 exports.create = async (req, res) => {
@@ -68,7 +68,7 @@ exports.update = async (req, res) => {
 exports.deleteTask = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const result = await pool.query(`DELETE FROM task 
+    const result = await pool.query(`DELETE FROM tasks 
         WHERE id = $1 AND user_id = $2 RETURNING id, title, isCompleted`,
         [taskId, global.user_id]);
     if (result.rows.length == 0) return res.status(404).json({ message: "Task not found" });
