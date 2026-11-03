@@ -1,5 +1,5 @@
 const { userSchema } = require("../validation/userSchema");
-const { Pool } = require("../db/pg-pool")
+const { pool } = require("../db/pg-pool")
 
 const crypto = require("crypto");
 const util = require("util");
