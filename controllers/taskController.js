@@ -22,7 +22,7 @@ const index = async (req, res) => {
 const show = async (req, res) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    const result = await pool.query(`SELECT FROM tasks
+    const result = await pool.query(`SELECT id, title, is_completed FROM tasks
         WHERE id = $1 AND user_id = $2`,
         [taskId, global.user_id]);
     if (!result.rows) return res.status(404).json({ message: "Task not found" });
