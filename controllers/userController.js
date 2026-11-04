@@ -1,4 +1,5 @@
 const { userSchema } = require("../validation/userSchema");
+const pool = require("../db/pg-pool")
 
 const crypto = require("crypto");
 const util = require("util");
@@ -17,45 +18,58 @@ async function comparePassword(inputPassword, storedHash) {
   return crypto.timingSafeEqual(keyBuffer, derivedKey);
 }
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
     if (!req.body) req.body = {};
     const { error, value } = userSchema.validate(req.body, { abortEarly: false });
-    if (error) return res.status(400).json({ message: "Invalid format" });
-
-    const email = value.email;
-    const name = value.name;
-    const hashedPassword = await hashPassword(value.password);
-
-    const user = 
-    {
-        email: email,
-        name: name,
-        hashedPassword: hashedPassword,
+    if (error) {
+        return res.status(400).json({
+            message: "Validation failed",
+            details: error.details,
+        });
     }
+    let result = null;
+    value.hashed_password = await hashPassword(value.password);
+    // the code to here is like the in-memory version
+    try {
+        result = await pool.query(`INSERT INTO users (email, name, hashed_password)
+            VALUES ($1, $2, $3) RETURNING id, email, name`,
+            [value.email, value.name, value.hashed_password]
+        ); // note that you use a parameterized query
+    } catch (e) { // the email might already be registered
+        if (e.code === "23505") { // this means the unique constraint for email was violated
+            // here you return the 400 and the error message.  Use a return statement, so that 
+            // you don't keep going in this function
+            return res.status(400).json({
+                message: "Email in use"
+            })
+        }
+        return next(e); // all other errors get passed to the error handler
+    }
+    const user = result.rows[0];
 
-    global.users.push(user);
-    global.user_id = user;
+    global.user_id = user.id;
 
     res.status(201).json({
-        name: name,
-        email: email,
+        name: user.name,
+        email: user.email,
     });
 }
 
 const logon = async (req, res) => {
     const email = req.body.email;
     const password = req.body.password;
-    for (let user of global.users) {
-
-        const goodCredentials = await comparePassword(password, user.hashedPassword);
-        if (goodCredentials && email == user.email) {
-            global.user_id = user;
-            res.status(200).json({
-                name: user.name,
-                email: user.email,
-            })
-            return;
-        }
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+    const user = result.rows[0];
+    if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const goodCredentials = await comparePassword(password, user.hashed_password);
+    if (goodCredentials && email == user.email) {
+        global.user_id = user.id;
+        return res.status(200).json({
+            name: user.name,
+            email: user.email,
+        })
     }
     res.status(401).json({
         message: "Couldn't log on"
