@@ -25,7 +25,7 @@ const show = async (req, res) => {
     const result = await pool.query(`SELECT id, title, is_completed FROM tasks
         WHERE id = $1 AND user_id = $2`,
         [taskId, global.user_id]);
-    if (!result.rows) return res.status(404).json({ message: "Task not found" });
+    if (result.rows.length === 0) return res.status(404).json({ message: "Task not found" });
     const task = result.rows[0];
     res.status(200).json(task);
 }
