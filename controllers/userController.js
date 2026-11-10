@@ -28,12 +28,12 @@ const register = async (req, res, next) => {
             details: error.details,
         });
     }
-    value.hashed_password = await hashPassword(value.password);
+    value.hashedPassword = await hashPassword(value.password);
     delete value.password;
     let user = null;
     try {
         user = await prisma.user.create({
-            data: { name, email, hashedPassword },
+            data: { name: value.name, email: value.email, hashedPassword: value.hashedPassword },
             select: { name: true, email: true, id: true} // specify the column values to return
         });
     } catch (err) {
@@ -60,7 +60,8 @@ const logon = async (req, res) => {
     if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
-    const goodCredentials = await comparePassword(password, user.hashed_password);
+    console.log(password, user.hashedPassword);
+    const goodCredentials = await comparePassword(password, user.hashedPassword);
     if (goodCredentials && email == user.email) {
         global.user_id = user.id;
         return res.status(200).json({
