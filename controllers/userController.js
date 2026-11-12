@@ -1,5 +1,5 @@
 const { userSchema } = require("../validation/userSchema");
-const pool = require("../db/pg-pool")
+const prisma = require("../db/prisma");
 
 const crypto = require("crypto");
 const util = require("util");
@@ -24,29 +24,27 @@ const register = async (req, res, next) => {
     if (error) {
         return res.status(400).json({
             message: "Validation failed",
+            content: value,
             details: error.details,
         });
     }
-    let result = null;
-    value.hashed_password = await hashPassword(value.password);
-    // the code to here is like the in-memory version
+    value.hashedPassword = await hashPassword(value.password);
+    delete value.password;
+    let user = null;
     try {
-        result = await pool.query(`INSERT INTO users (email, name, hashed_password)
-            VALUES ($1, $2, $3) RETURNING id, email, name`,
-            [value.email, value.name, value.hashed_password]
-        ); // note that you use a parameterized query
-    } catch (e) { // the email might already be registered
-        if (e.code === "23505") { // this means the unique constraint for email was violated
-            // here you return the 400 and the error message.  Use a return statement, so that 
-            // you don't keep going in this function
-            return res.status(400).json({
-                message: "Email in use"
-            })
+        user = await prisma.user.create({
+            data: { name: value.name, email: value.email, hashedPassword: value.hashedPassword },
+            select: { name: true, email: true, id: true} // specify the column values to return
+        });
+    } catch (err) {
+        if (err.name === "PrismaClientKnownRequestError" && err.code === "P2002") {
+            // send the appropriate error back -- the email was already registered
+            return res.status(400).json({ message: "Could not register" });
+        } else {
+            return next(err); // the error handler takes care of other errors
         }
-        return next(e); // all other errors get passed to the error handler
     }
-    const user = result.rows[0];
-
+    
     global.user_id = user.id;
 
     res.status(201).json({
@@ -56,14 +54,14 @@ const register = async (req, res, next) => {
 }
 
 const logon = async (req, res) => {
-    const email = req.body.email;
+    const email = req.body.email.toLowerCase();
     const password = req.body.password;
-    const result = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-    const user = result.rows[0];
+    const user = await prisma.user.findUnique({ where: { email }});
     if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
-    const goodCredentials = await comparePassword(password, user.hashed_password);
+    console.log(password, user.hashedPassword);
+    const goodCredentials = await comparePassword(password, user.hashedPassword);
     if (goodCredentials && email == user.email) {
         global.user_id = user.id;
         return res.status(200).json({
