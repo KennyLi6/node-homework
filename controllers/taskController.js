@@ -6,7 +6,19 @@ const index = async (req, res) => {
         where: {
             userId: global.user_id, // only the tasks for this user!
         },
-        select: { title: true, isCompleted: true, id: true }
+        select: { 
+            title: true,
+            isCompleted: true, 
+            id: true,
+            priority: true,
+            createdAt: true,
+            User: {
+                select: {
+                    name: true,
+                    email: true,
+                }
+            }
+        }
     });
     if (tasks.length == 0) {
         return res.status(404).json({ message: "No tasks found" });
