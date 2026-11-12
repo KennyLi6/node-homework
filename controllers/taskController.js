@@ -1,14 +1,6 @@
 const { taskSchema, patchTaskSchema } = require("../validation/taskSchema");
 const prisma = require("../db/prisma");
 
-const taskCounter = (() => {
-    let lastTaskNumber = 0;
-    return () => {
-        lastTaskNumber += 1;
-        return lastTaskNumber;
-    };
-})();
-
 const index = async (req, res) => {
     const tasks = await prisma.task.findMany({
         where: {
@@ -45,7 +37,7 @@ const create = async (req, res, next) => {
     try {
         task = await prisma.task.create({
             data: { title: value.title, isCompleted: value.isCompleted, userId: global.user_id },
-            select: { id: true, title: true , isCompleted: true }
+            select: { id: true, title: true , isCompleted: true, priority: true }
         });
     } catch (err) {
         return next(err);
