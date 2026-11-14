@@ -94,7 +94,7 @@ const create = async (req, res, next) => {
     }
 }
 
-const bulk = async (req, res, next) => {
+const bulkCreate = async (req, res, next) => {
     const { tasks } = req.body;
 
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
@@ -189,7 +189,7 @@ module.exports = {
     index,
     show,
     create,
-    bulk,
+    bulkCreate,
     update,
     deleteTask
 }
