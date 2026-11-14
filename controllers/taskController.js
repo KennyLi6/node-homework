@@ -54,8 +54,8 @@ const index = async (req, res) => {
     }
 
     res.status(200).json({
-        tasks, 
-        pagination
+        tasks: tasks, 
+        pagination: pagination
     });
 }
 
@@ -78,16 +78,17 @@ const create = async (req, res, next) => {
     const { error, value } = taskSchema.validate(req.body, { abortEarly: false });
     if (error) return res.status(400).json({ message: "Invalid format" });
     // you do your Joi validation, and you have a validated task object. Then:
-    let task = null;
+    
     try {
-        task = await prisma.task.create({
+        const task = await prisma.task.create({
             data: { title: value.title, isCompleted: value.isCompleted, userId: global.user_id },
             select: { id: true, title: true , isCompleted: true, priority: true }
         });
+        
+        return res.status(201).json(task);
     } catch (err) {
         return next(err);
     }
-    res.status(201).json(task);
 }
 
 const bulk = async (req, res, next) => {
@@ -140,9 +141,8 @@ const update = async (req, res, next) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
 
-    let task = null;
     try {
-        task = await prisma.task.update({
+        const task = await prisma.task.update({
             data: value,
             where: {
                 id: taskId,
@@ -150,6 +150,7 @@ const update = async (req, res, next) => {
             },
             select: { title: true, isCompleted: true, id: true }
         });
+        return res.status(200).json(task);
     } catch (err) {
         if (err.code === "P2025" ) {
             return res.status(404).json({ message: "The task was not found."})
@@ -157,21 +158,21 @@ const update = async (req, res, next) => {
             return next(err); // pass other errors to the global error handler
         }
     }
-    res.status(200).json(task);
 }
 
 const deleteTask = async (req, res, next) => {
     const taskId = parseInt(req.params?.id);
     if (!taskId) return res.status(400).json({ message: "Invalid Id" });
-    let task = null;
+    
     try {
-        task = await prisma.task.delete({
+        const task = await prisma.task.delete({
             where: {
                 id: taskId,
                 userId: global.user_id,
             },
             select: { title: true, isCompleted: true, id: true }
         });
+        return res.status(200).json(task);
     } catch (err) {
         if (err.code === "P2025" ) {
             return res.status(404).json({ message: "The task was not found."})
@@ -179,7 +180,6 @@ const deleteTask = async (req, res, next) => {
             return next(err); // pass other errors to the global error handler
         }
     }
-    res.status(200).json(task);
 }
 
 module.exports = {
