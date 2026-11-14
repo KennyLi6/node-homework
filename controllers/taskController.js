@@ -90,6 +90,48 @@ const create = async (req, res, next) => {
     res.status(201).json(task);
 }
 
+const bulk = async (req, res, next) => {
+    const { tasks } = req.body;
+
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({
+            error: "Invalid request data"
+        });
+    }
+
+    const validTasks = [];
+    for (const task of tasks) {
+        const { error, value } = taskSchema.validate(task);
+        if (error) {
+            return res.status(400).json({
+                error: "Validation failed",
+                details: error.details,
+            });
+        }
+        validTasks.push({
+            title: value.title,
+            isCompleted: value.isCompleted || false,
+            priority: value.priority || 'medium',
+            userId: global.user_id
+        });
+    }
+
+    try {
+        const result = await prisma.task.createMany({
+            data: validTasks,
+            skipDuplicates: false
+        });
+
+        res.status(201).json({
+            message: "Success",
+            tasksCreated: result.count,
+            totalRequested: validTasks.length
+        })
+    } catch (err) {
+        return next(err);
+    }
+}
+
 const update = async (req, res, next) => {
     if (!req.body) req.body = {};
     const { error, value } = patchTaskSchema.validate(req.body, { abortEarly: false });
@@ -144,6 +186,7 @@ module.exports = {
     index,
     show,
     create,
+    bulk,
     update,
     deleteTask
 }
