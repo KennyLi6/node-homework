@@ -70,7 +70,12 @@ const show = async (req, res) => {
             id: taskId,
             userId: global.user_id,
         },
-        select: { title: true, isCompleted: true, id: true }
+        select: { 
+            title: true, 
+            isCompleted: true, 
+            id: true, 
+            User: true
+        }
     });
     if (!task) return res.status(404).json({ message: "Task not found" });
     res.status(200).json(task);
@@ -84,7 +89,7 @@ const create = async (req, res, next) => {
     
     try {
         const task = await prisma.task.create({
-            data: { title: value.title, isCompleted: value.isCompleted, userId: global.user_id },
+            data: { title: value.title, isCompleted: value.isCompleted, userId: global.user_id, priority: value.priority },
             select: { id: true, title: true , isCompleted: true, priority: true }
         });
         
@@ -151,7 +156,7 @@ const update = async (req, res, next) => {
                 id: taskId,
                 userId: global.user_id,
             },
-            select: { title: true, isCompleted: true, id: true }
+            select: { title: true, isCompleted: true, id: true, priority: true }
         });
         return res.status(200).json(task);
     } catch (err) {
