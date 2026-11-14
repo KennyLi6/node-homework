@@ -6,7 +6,7 @@ const getUserAnalytics = async (req, res) => {
         return res.status(400).json({ message: "Invalid ID" });
     }
     const user = await prisma.user.findUnique({
-        where: { userId: userId }
+        where: { id: userId }
     });
     if (!user) { return res.status(404).json({ message: "User not found" }) }
 
@@ -139,9 +139,9 @@ const searchTasks = async (req, res) => {
             CASE
                 WHEN t.title ILIKE ${exactMatch} THEN 1
                 WHEN t.title ILIKE ${startsWith} THEN 2
-                WHEN T.title ILIKE ${searchPattern} THEN 3
+                WHEN t.title ILIKE ${searchPattern} THEN 3
                 ELSE 4
-            END
+            END,
             t.created_at DESC
         LIMIT ${parseInt(limit)}
     `;
@@ -149,7 +149,7 @@ const searchTasks = async (req, res) => {
     res.status(200).json({
         results: searchResults,
         query: searchQuery,
-        count: searchResults.count
+        count: searchResults.length
     })
 }
 
