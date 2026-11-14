@@ -53,7 +53,10 @@ const index = async (req, res) => {
         hasPrev: page > 1 ? true : false,
     }
 
-    res.status(200).json(tasks, pagination);
+    res.status(200).json({
+        tasks, 
+        pagination
+    });
 }
 
 const show = async (req, res) => {
