@@ -60,6 +60,8 @@ const getUsersWithStats = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    if (page < 1) { return res.status(400).json({ message: "Invalid page number" }) }
+    if (limit < 1 || limit > 100) { return res.status(400).json({ message: "Limit must be between 1 and 100" }) }
 
     const usersRaw = await prisma.user.findMany({
         include: {
