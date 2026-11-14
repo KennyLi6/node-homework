@@ -5,6 +5,10 @@ const getUserAnalytics = async (req, res) => {
     if (isNaN(userId)) {
         return res.status(400).json({ message: "Invalid ID" });
     }
+    const user = await prisma.user.findUnique({
+        where: { userId: userId }
+    });
+    if (!user) { return res.status(404).json({ message: "User not found" }) }
 
     const taskStats = await prisma.task.groupBy({
         by: ['isCompleted'],
