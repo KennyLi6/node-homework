@@ -33,7 +33,7 @@ const register = async (req, res, next) => {
     try {
         const result = await prisma.$transaction(async (tx) => {
             const newUser = await tx.user.create({
-                data: { email: value.email, name: value.name, hashedPassword: value.hashPassword },
+                data: { email: value.email, name: value.name, hashedPassword: value.hashedPassword },
                 select: { id: true, email: true, name: true }
             });
 
@@ -81,7 +81,15 @@ const register = async (req, res, next) => {
 const logon = async (req, res) => {
     const email = req.body.email.toLowerCase();
     const password = req.body.password;
-    const user = await prisma.user.findUnique({ where: { email }});
+    const user = await prisma.user.findUnique({ 
+        where: { email: email },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            hashedPassword: true
+        }
+    });
     if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
     }
