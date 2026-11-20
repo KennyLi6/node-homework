@@ -4,6 +4,23 @@ const prisma = require("../db/prisma");
 const crypto = require("crypto");
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
+const { randomUUID } = require("crypto");
+const jwt = require("jsonwebtoken");
+
+const cookieFlags = (req) => {
+    return {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    };
+};
+
+const setJwtCookie = (req, res, user) => {
+    const payload = { id: user.id, csrfToken: randomUUID() };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.cookie("jwt", token, { ...cookieFlags(req), maxAge: 3600000 }); // 1 hour
+    return payload.csrfToken;
+}
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
