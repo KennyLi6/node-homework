@@ -78,8 +78,6 @@ const register = async (req, res, next) => {
             return { user: newUser, welcomeTasks };
         });
 
-        global.user_id = result.user.id; 
-
         const csrfToken = setJwtCookie(req, res, result.user);
         delete result.user.id;
 
@@ -116,7 +114,6 @@ const logon = async (req, res) => {
     }
     const goodCredentials = await comparePassword(password, user.hashedPassword);
     if (goodCredentials && email == user.email) {
-        global.user_id = user.id;
         const csrfToken = setJwtCookie(req, res, user);
         delete user.id;
 
@@ -132,7 +129,6 @@ const logon = async (req, res) => {
 }
 
 function logoff(req, res) {
-    global.user_id = null;
     res.clearCookie("jwt", cookieFlags(req));
     res.status(200).json({
         message: "Log off success"
