@@ -1,5 +1,6 @@
 const express = require("express");
 const prisma = require("./db/prisma");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
@@ -9,7 +10,7 @@ const analyticsRouter = require("./routes/analyticsRoutes");
 const { notFound } = require("./middleware/not-found");
 const { errorHandler } = require("./middleware/error-handler");
 
-
+app.use(cookieParser);
 app.use(express.json());
 
 app.get('/health', async (req, res) => {
