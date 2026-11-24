@@ -10,7 +10,7 @@ const analyticsRouter = require("./routes/analyticsRoutes");
 const { notFound } = require("./middleware/not-found");
 const { errorHandler } = require("./middleware/error-handler");
 
-app.use(cookieParser);
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/health', async (req, res) => {
