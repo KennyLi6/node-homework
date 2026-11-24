@@ -9,9 +9,6 @@ const analyticsRouter = require("./routes/analyticsRoutes");
 const { notFound } = require("./middleware/not-found");
 const { errorHandler } = require("./middleware/error-handler");
 
-global.user_id = null;
-global.users = [];
-global.tasks = [];
 
 app.use(express.json());
 
