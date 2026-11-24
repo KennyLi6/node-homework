@@ -10,6 +10,6 @@ router.get("/:id", taskController.show);
 router.post("/", taskController.create);
 router.post("/bulk", taskController.bulkCreate);
 router.patch("/:id", taskController.update);
-router.delete("/:id", taskController.deleteTask)
+router.delete("/:id", taskController.deleteTask);
 
 module.exports = router;
