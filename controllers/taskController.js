@@ -9,7 +9,7 @@ const index = async (req, res) => {
     if (limit < 1 || limit > 100) { return res.status(400).json({ message: "Limit must be between 1 and 100" }) }
 
 
-    const whereClause = { userId: global.user_id };
+    const whereClause = { userId: req.user.id };
 
     if (req.query.find) {
         whereClause.title = {
@@ -64,7 +64,7 @@ const show = async (req, res) => {
     const task = await prisma.task.findUnique({
         where: {
             id: taskId,
-            userId: global.user_id,
+            userId: req.user.id,
         },
         select: { 
             title: true, 
@@ -85,7 +85,7 @@ const create = async (req, res, next) => {
     
     try {
         const task = await prisma.task.create({
-            data: { title: value.title, isCompleted: value.isCompleted, userId: global.user_id, priority: value.priority },
+            data: { title: value.title, isCompleted: value.isCompleted, userId: req.user.id, priority: value.priority },
             select: { id: true, title: true , isCompleted: true, priority: true }
         });
         
@@ -117,7 +117,7 @@ const bulkCreate = async (req, res, next) => {
             title: value.title,
             isCompleted: value.isCompleted || false,
             priority: value.priority || 'medium',
-            userId: global.user_id
+            userId: req.user.id
         });
     }
 
@@ -150,7 +150,7 @@ const update = async (req, res, next) => {
             data: value,
             where: {
                 id: taskId,
-                userId: global.user_id,
+                userId: req.user.id,
             },
             select: { title: true, isCompleted: true, id: true, priority: true }
         });
@@ -172,7 +172,7 @@ const deleteTask = async (req, res, next) => {
         const task = await prisma.task.delete({
             where: {
                 id: taskId,
-                userId: global.user_id,
+                userId: req.user.id,
             },
             select: { title: true, isCompleted: true, id: true }
         });

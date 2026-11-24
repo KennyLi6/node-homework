@@ -4,6 +4,23 @@ const prisma = require("../db/prisma");
 const crypto = require("crypto");
 const util = require("util");
 const scrypt = util.promisify(crypto.scrypt);
+const { randomUUID } = require("crypto");
+const jwt = require("jsonwebtoken");
+
+const cookieFlags = (req) => {
+    return {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "Strict",
+    };
+};
+
+const setJwtCookie = (req, res, user) => {
+    const payload = { id: user.id, csrfToken: randomUUID() };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.cookie("jwt", token, { ...cookieFlags(req), maxAge: 3600000 }); // 1 hour
+    return payload.csrfToken;
+}
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -61,12 +78,14 @@ const register = async (req, res, next) => {
             return { user: newUser, welcomeTasks };
         });
 
-        global.user_id = result.user.id; 
+        const csrfToken = setJwtCookie(req, res, result.user);
+        delete result.user.id;
 
         return res.status(201).json({
             user: result.user,
             welcomeTasks: result.welcomeTasks,
-            transactionStatus: "success"
+            transactionStatus: "success",
+            csrfToken: csrfToken,
         }); 
     } catch (err) {
         if (err.code === "P2002") {
@@ -95,10 +114,13 @@ const logon = async (req, res) => {
     }
     const goodCredentials = await comparePassword(password, user.hashedPassword);
     if (goodCredentials && email == user.email) {
-        global.user_id = user.id;
+        const csrfToken = setJwtCookie(req, res, user);
+        delete user.id;
+
         return res.status(200).json({
             name: user.name,
             email: user.email,
+            csrfToken: csrfToken
         })
     }
     res.status(401).json({
@@ -107,7 +129,7 @@ const logon = async (req, res) => {
 }
 
 function logoff(req, res) {
-    global.user_id = null;
+    res.clearCookie("jwt", cookieFlags(req));
     res.status(200).json({
         message: "Log off success"
     });
